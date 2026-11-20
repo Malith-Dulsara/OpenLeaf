@@ -1,0 +1,45 @@
+name: Bug report
+description: Something in OpenLeaf doesn't work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to report a bug! Please fill in as much as you can.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a project…
+        2. Click …
+        3. See error …
+  - type: dropdown
+    id: mode
+    attributes:
+      label: How do you run OpenLeaf?
+      options: [Desktop app (installer), Desktop app (portable), Browser mode (start.bat / node server.js), As a collaborator via an invite link]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: OpenLeaf version
+      placeholder: e.g. 1.1.0
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and TeX distribution
+      placeholder: e.g. Windows 11, MiKTeX 24.4
+  - type: textarea
+    id: logs
+    attributes:
+      label: Compile log or console output
+      description: If it's a compile problem, paste the relevant part of the raw log (Logs → Raw logs).
+      render: text

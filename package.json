@@ -1,0 +1,102 @@
+{
+  "name": "openleaf",
+  "productName": "OpenLeaf",
+  "version": "1.1.0",
+  "description": "OpenLeaf: a local, Overleaf-style LaTeX editor with live PDF preview, SyncTeX, auto-compile and real-time collaboration.",
+  "keywords": [
+    "latex",
+    "overleaf",
+    "overleaf-alternative",
+    "tex",
+    "editor",
+    "collaborative-editing",
+    "real-time",
+    "yjs",
+    "crdt",
+    "pdf",
+    "synctex",
+    "electron",
+    "desktop-app",
+    "offline",
+    "research",
+    "academic-writing"
+  ],
+  "homepage": "https://github.com/Maith-Dulsara/OpenLeaf#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Maith-Dulsara/OpenLeaf.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Maith-Dulsara/OpenLeaf/issues"
+  },
+  "license": "MIT",
+  "author": "Malith Dulsara",
+  "main": "electron/main.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "app": "electron .",
+    "vendor": "node scripts/vendor.js",
+    "dist": "node scripts/vendor.js && electron-builder --win nsis portable",
+    "dist:mac": "node scripts/vendor.js && electron-builder --mac dmg",
+    "dist:linux": "node scripts/vendor.js && electron-builder --linux AppImage deb",
+    "test": "node --test test/collab.test.js test/log-parser.test.js",
+    "check": "node --check server.js && node --check collab.js && node --check electron/main.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "codemirror": "5.65.21",
+    "electron": "38.2.2",
+    "electron-builder": "26.0.12",
+    "esbuild": "0.25.12",
+    "pdfjs-dist": "4.10.38",
+    "y-protocols": "1.0.6",
+    "yjs": "13.6.27"
+  },
+  "build": {
+    "appId": "app.openleaf.desktop",
+    "productName": "OpenLeaf",
+    "copyright": "Copyright © 2026 Malith Dulsara",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "server.js",
+      "collab.js",
+      "lib/**",
+      "electron/**",
+      "public/**",
+      "package.json"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "OpenLeaf",
+      "artifactName": "OpenLeaf-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "OpenLeaf-Portable-${version}.${ext}"
+    },
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Office"
+    }
+  }
+}

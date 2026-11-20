@@ -1,0 +1,8 @@
+* text=auto eol=lf
+*.bat text eol=crlf
+*.png binary
+*.ico binary
+*.jpg binary
+# vendored third-party bundles: keep out of language stats and diffs
+public/vendor/** linguist-vendored -diff
+lib/yjs.cjs linguist-generated -diff

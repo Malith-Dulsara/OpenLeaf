@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenLeaf Projects</title>
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/common.css">
+<style>
+  header {
+    background: var(--topbar); color: var(--topbar-text); height: 52px; display: flex; align-items: center;
+    padding: 0 20px; gap: 14px;
+  }
+  .brand { font-weight: 700; font-size: 17px; letter-spacing: .2px; display: flex; align-items: center; gap: 8px; }
+  .brand b { color: var(--accent); }
+  header .spacer { flex: 1; }
+  header .btn { background: transparent; border-color: transparent; color: var(--topbar-text); }
+  header .btn:hover { background: var(--topbar-hover); }
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+  .toolbar h1 { font-size: 22px; margin: 0 auto 0 0; }
+  .toolbar input[type="search"] { width: 240px; max-width: 100%; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--border); }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 600; background: var(--panel-2); }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover td { background: var(--panel-2); }
+  td.name a { color: var(--text); font-weight: 600; text-decoration: none; }
+  td.name small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
+  td.muted { color: var(--muted); white-space: nowrap; }
+  td.acts { text-align: right; white-space: nowrap; width: 1%; }
+  .icon-btn { border: 0; background: none; padding: 6px; border-radius: 6px; cursor: pointer; color: var(--muted); display: inline-flex; }
+  .icon-btn:hover { background: var(--border); color: var(--text); }
+  .empty { padding: 50px 20px; text-align: center; color: var(--muted); }
+  .empty h2 { color: var(--text); font-size: 18px; margin: 0 0 6px; }
+  .hint { margin-top: 18px; color: var(--muted); font-size: 13px; }
+  .hint code { background: var(--panel-2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; font-family: var(--mono); font-size: 12px; word-break: break-all; }
+  .warn-box { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; display: none; }
+  @media (max-width: 640px) { td.muted.created, th.created { display: none; } .toolbar input[type="search"] { width: 100%; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#138a52"/><path d="M8.5 23.5C8.5 13 14.5 7.5 24.5 7.5c0 10.5-5.5 16-16 16z" fill="#fff"/><path d="M8.5 23.5 18.5 13.5" stroke="#138a52" stroke-width="1.8" stroke-linecap="round"/></svg><span>Open<b>Leaf</b></span></div>
+  <div class="spacer"></div>
+  <button class="btn icon" id="themeBtn" title="Toggle dark mode"></button>
+</header>
+<main>
+  <div class="warn-box" id="healthWarn"></div>
+  <div class="toolbar">
+    <h1>Your projects</h1>
+    <input type="search" id="search" placeholder="Search projects…" aria-label="Search projects">
+    <button class="btn" id="uploadBtn"></button>
+    <button class="btn primary" id="newBtn"></button>
+  </div>
+  <div class="card" id="list"></div>
+  <p class="hint">Projects live in <code id="projDir">…</code>. Drop any existing LaTeX folder in there and it appears here automatically.</p>
+  <input type="file" id="zipInput" accept=".zip" hidden>
+</main>
+<script src="/common.js"></script>
+<script>
+const { api, el, icon, prompt, confirm, toast, menu, modal, timeAgo, store, applyTheme } = UI;
+let projects = [];
+
+const themeBtn = document.getElementById('themeBtn');
+const paintTheme = () => { themeBtn.replaceChildren(icon(document.documentElement.dataset.theme === 'dark' ? 'sun' : 'moon')); };
+themeBtn.onclick = () => { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; store.set('openleaf.theme', t); applyTheme(t); paintTheme(); };
+paintTheme();
+
+document.getElementById('newBtn').append(icon('plus'), 'New project');
+document.getElementById('uploadBtn').append(icon('upload'), 'Upload .zip');
+
+const open = (p) => { location.href = '/project/' + encodeURIComponent(p.id); };
+
+function render() {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const list = document.getElementById('list');
+  const rows = projects.filter((p) => !q || p.name.toLowerCase().includes(q));
+  if (!projects.length) {
+    list.replaceChildren(el('div', { class: 'empty' }, el('h2', {}, 'No projects yet'), el('div', {}, 'Create a new project or upload a .zip of an existing paper.')));
+    return;
+  }
+  const tbody = el('tbody');
+  for (const p of rows) {
+    const more = el('button', { class: 'icon-btn', title: 'More', onclick: (e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); projectMenu(p, r.left - 120, r.bottom + 4); } }, icon('more'));
+    tbody.append(el('tr', { onclick: () => open(p), oncontextmenu: (e) => { e.preventDefault(); projectMenu(p, e.clientX, e.clientY); } },
+      el('td', { class: 'name' }, el('a', { href: '/project/' + encodeURIComponent(p.id), onclick: (e) => e.stopPropagation() }, p.name), el('small', {}, `${p.main} · ${p.compiler}`)),
+      el('td', { class: 'muted' }, timeAgo(p.modified)),
+      el('td', { class: 'muted created' }, new Date(p.created).toLocaleDateString()),
+      el('td', { class: 'acts' }, more)));
+  }
+  list.replaceChildren(el('table', {}, el('thead', {}, el('tr', {}, el('th', {}, 'Title'), el('th', {}, 'Last modified'), el('th', { class: 'created' }, 'Created'), el('th'))), tbody));
+  if (!rows.length) list.append(el('div', { class: 'empty' }, 'No projects match your search.'));
+}
+
+function projectMenu(p, x, y) {
+  menu(x, y, [
+    { label: 'Open', action: () => open(p) },
+    { label: 'Rename', action: async () => {
+      const name = await prompt('Rename project', p.name, { ok: 'Rename' });
+      if (name) { await api('PATCH', `/api/projects/${encodeURIComponent(p.id)}`, { name }); load(); }
+    } },
+    { label: 'Make a copy', action: async () => {
+      const name = await prompt('Copy project', `${p.name} (copy)`, { ok: 'Copy' });
+      if (name) { await api('POST', `/api/projects/${encodeURIComponent(p.id)}/copy`, { name }); load(); toast('Project copied'); }
+    } },
+    { label: 'Download source (.zip)', action: () => { location.href = `/api/projects/${encodeURIComponent(p.id)}/zip`; } },
+    { label: 'Download PDF', action: () => { location.href = `/api/projects/${encodeURIComponent(p.id)}/output.pdf?download`; } },
+    { label: 'Show in file explorer', action: () => api('POST', `/api/projects/${encodeURIComponent(p.id)}/reveal`) },
+    '-',
+    { label: 'Move to trash', danger: true, action: async () => {
+      if (await confirm('Move to trash?', `"${p.name}" will be moved to the projects/.trash folder. You can restore it from there.`, { ok: 'Move to trash', danger: true })) {
+        await api('DELETE', `/api/projects/${encodeURIComponent(p.id)}`); load(); toast('Moved to trash');
+      }
+    } },
+  ]);
+}
+
+document.getElementById('newBtn').onclick = async () => {
+  const result = await modal((box, close) => {
+    const name = el('input', { type: 'text', value: 'Untitled Paper', autofocus: true });
+    const tpl = el('select', {}, el('option', { value: 'paper' }, 'Research paper (sections, bibliography, figures)'), el('option', { value: 'blank' }, 'Blank article'));
+    box.append(el('form', { onsubmit: (e) => { e.preventDefault(); close({ name: name.value.trim(), template: tpl.value }); } },
+      el('h3', {}, 'New project'), el('label', {}, 'Project name'), name, el('label', {}, 'Template'), tpl,
+      el('div', { class: 'actions' }, el('button', { type: 'button', class: 'btn', onclick: () => close(null) }, 'Cancel'), el('button', { class: 'btn primary', type: 'submit' }, 'Create'))));
+  });
+  if (!result || !result.name) return;
+  const p = await api('POST', '/api/projects', result);
+  open(p);
+};
+
+document.getElementById('uploadBtn').onclick = () => document.getElementById('zipInput').click();
+document.getElementById('zipInput').onchange = async (e) => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  toast('Importing ' + f.name + '…');
+  try {
+    const p = await api('POST', `/api/projects/import?name=${encodeURIComponent(f.name.replace(/\.zip$/i, ''))}`, f);
+    open(p);
+  } catch (err) { toast(err.message, { error: true }); }
+};
+document.getElementById('search').oninput = render;
+
+async function load() {
+  try { projects = await api('GET', '/api/projects'); render(); }
+  catch (e) { toast(e.message, { error: true }); }
+}
+load();
+api('GET', '/api/health').then((h) => {
+  document.getElementById('projDir').textContent = h.projectsDir;
+  if (!h.latexmk) {
+    const w = document.getElementById('healthWarn');
+    w.style.display = 'block';
+    w.textContent = 'latexmk was not found on your PATH. Install MiKTeX or TeX Live (plus Perl for latexmk), then restart OpenLeaf.';
+  }
+});
+</script>
+</body>
+</html>

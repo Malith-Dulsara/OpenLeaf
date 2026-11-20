@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenLeaf Editor</title>
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/vendor/codemirror/lib/codemirror.css">
+<link rel="stylesheet" href="/vendor/codemirror/addon/dialog/dialog.css">
+<link rel="stylesheet" href="/vendor/codemirror/addon/hint/show-hint.css">
+<link rel="stylesheet" href="/vendor/codemirror/theme/material-darker.css">
+<link rel="stylesheet" href="/common.css">
+<link rel="stylesheet" href="/editor.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="tb-btn" href="/" id="homeBtn" title="Back to projects"></a>
+  <button class="tb-btn" id="menuBtn" title="Project settings"><span class="lbl">Menu</span></button>
+  <button class="tb-btn" id="sidebarBtn" title="Toggle file tree"></button>
+  <div class="proj-name" id="projName" title="Click to rename">…</div>
+  <div class="spacer"></div>
+  <span class="save-state" id="saveState"></span>
+  <div class="people" id="people" aria-label="People editing this project"></div>
+  <button class="tb-btn share-btn" id="shareBtn" title="Invite collaborators"><span class="lbl">Share</span></button>
+  <div class="seg" role="group" aria-label="Layout">
+    <button data-layout="editor" title="Editor only">Editor</button>
+    <button data-layout="split" title="Editor &amp; PDF">Split</button>
+    <button data-layout="pdf" title="PDF only">PDF</button>
+  </div>
+  <button class="tb-btn" id="themeBtn" title="Toggle dark mode"></button>
+</header>
+
+<div class="workspace" id="workspace">
+  <aside class="sidebar" id="sidebar">
+    <div class="pane-head">
+      <span class="pane-title">Files</span>
+      <button class="icon-btn" id="newFileBtn" title="New file"></button>
+      <button class="icon-btn" id="newFolderBtn" title="New folder"></button>
+      <button class="icon-btn" id="uploadBtn" title="Upload files"></button>
+    </div>
+    <div class="tree" id="tree" tabindex="0"></div>
+    <div class="outline-wrap" id="outlineWrap">
+      <div class="pane-head outline-toggle" id="outlineToggle"><span class="chev"></span><span class="pane-title">File outline</span></div>
+      <div class="outline" id="outline"></div>
+    </div>
+    <input type="file" id="uploadInput" multiple hidden>
+  </aside>
+  <div class="gutter" id="gutterSidebar"></div>
+
+  <section class="editor-pane" id="editorPane">
+    <div class="editor-head">
+      <span class="file-path" id="filePath"></span>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="boldBtn" title="Bold (Ctrl+B)"><b>B</b></button>
+      <button class="icon-btn" id="italicBtn" title="Italic (Ctrl+I)"><i>I</i></button>
+      <button class="icon-btn" id="searchBtn" title="Find / replace (Ctrl+F / Ctrl+H)"></button>
+    </div>
+    <div class="cm-host" id="cmHost"></div>
+    <div class="binary-view" id="binaryView" hidden></div>
+    <div class="statusbar">
+      <span id="cursorPos">Ln 1, Col 1</span>
+      <span id="wordCount"></span>
+      <div class="spacer"></div>
+      <span id="liveState"></span>
+    </div>
+  </section>
+
+  <div class="gutter sync-gutter" id="gutterEditor">
+    <button class="sync-btn" id="syncFwdBtn" title="Go to code location in PDF (Ctrl+Alt+Right)"></button>
+    <button class="sync-btn" id="syncBackBtn" title="Go to PDF location in code (or double-click the PDF)"></button>
+  </div>
+
+  <section class="pdf-pane" id="pdfPane">
+    <div class="pdf-toolbar">
+      <div class="compile-group">
+        <button class="btn primary" id="compileBtn" title="Recompile (Ctrl+S / Ctrl+Enter)"><span class="compile-icon"></span><span class="lbl">Recompile</span></button>
+        <button class="btn primary caret" id="compileMenuBtn" title="Compile options"></button>
+      </div>
+      <button class="btn small logs-btn" id="logsBtn" title="Logs and output files"><span class="lbl">Logs</span><span class="badge" id="logBadge" hidden></span></button>
+      <span class="compile-status" id="compileStatus"></span>
+      <div class="spacer"></div>
+      <div class="page-ind"><input id="pageInput" type="text" value="0" aria-label="Page"><span id="pageCount">/ 0</span></div>
+      <button class="icon-btn" id="zoomOutBtn" title="Zoom out"></button>
+      <select id="zoomSelect" aria-label="Zoom">
+        <option value="page-width">Fit width</option>
+        <option value="page-fit">Fit page</option>
+        <option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option>
+        <option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option><option value="3">300%</option>
+        <option value="custom" hidden>—</option>
+      </select>
+      <button class="icon-btn" id="zoomInBtn" title="Zoom in"></button>
+      <a class="icon-btn" id="downloadPdfBtn" title="Download PDF"></a>
+    </div>
+    <div class="pdf-viewport" id="pdfViewport">
+      <div class="pdf-pages" id="pdfPages"></div>
+      <div class="pdf-empty" id="pdfEmpty">Compile the project to see the PDF.</div>
+    </div>
+    <div class="log-panel" id="logPanel" hidden>
+      <div class="log-head">
+        <div class="log-tabs" id="logTabs"></div>
+        <div class="spacer"></div>
+        <button class="btn small" id="rawLogBtn">Raw logs</button>
+        <button class="btn small" id="clearCacheBtn" title="Delete auxiliary files and rebuild from scratch">Clear cached files</button>
+        <button class="icon-btn" id="closeLogBtn" title="Close">✕</button>
+      </div>
+      <div class="log-body" id="logBody"></div>
+    </div>
+  </section>
+</div>
+
+<script src="/common.js"></script>
+<script src="/vendor/codemirror/lib/codemirror.js"></script>
+<script src="/vendor/codemirror/mode/stex/stex.js"></script>
+<script src="/vendor/codemirror/addon/edit/matchbrackets.js"></script>
+<script src="/vendor/codemirror/addon/edit/closebrackets.js"></script>
+<script src="/vendor/codemirror/addon/selection/active-line.js"></script>
+<script src="/vendor/codemirror/addon/search/searchcursor.js"></script>
+<script src="/vendor/codemirror/addon/dialog/dialog.js"></script>
+<script src="/vendor/codemirror/addon/search/search.js"></script>
+<script src="/vendor/codemirror/addon/search/jump-to-line.js"></script>
+<script src="/vendor/codemirror/addon/hint/show-hint.js"></script>
+<script src="/vendor/codemirror/addon/comment/comment.js"></script>
+<script type="module" src="/editor.js"></script>
+</body>
+</html>

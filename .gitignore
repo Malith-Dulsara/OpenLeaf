@@ -1,0 +1,23 @@
+# dependencies & build output
+node_modules/
+dist/
+out/
+
+# your LaTeX projects (browser mode keeps them next to server.js)
+projects/
+
+# LaTeX build artefacts inside projects
+.build/
+*.aux
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+
+# logs & OS / editor files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.claude/
